@@ -1,0 +1,32 @@
+name: Publish PDFs
+on:
+  # manual trigger (GitHub UI → Actions → Run workflow)
+  workflow_dispatch: {}
+  # automatic trigger when you push a normal commit to main
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'     # prevents infinite loop
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                          # need complete history to rewrite
+
+      - name: Replace history with single commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout --orphan __publish_tmp       # keep working tree, drop history
+          git add -A                                # stage all current files
+          git commit -m "publish $(date -Iseconds)" # one fresh commit
+          git branch -M main
+
+      - name: Force‑push
+        run: git push -f origin main
+
